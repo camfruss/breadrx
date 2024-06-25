@@ -8,6 +8,9 @@
 **/*.zst
 **/*.csv
 
+# Log files
+**/*.log
+
 # Media types
 **/*.jpg
 **/*.jpeg

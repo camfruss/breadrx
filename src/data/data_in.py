@@ -57,18 +57,18 @@ class DataIngestor:
         self.df = pd.concat([self.df, tmp_df], ignore_index=True)
         logging.info(f"Successfully added {source} to dataframe")
 
-    def save(self, dir: str, name: str):
+    def save(self, dir_: str, name: str):
         """
 
         Parameters
         ----------
-        dir: the path to the folder
+        dir_: the path to the folder
         name: the name of the csv file
         """
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        if not os.path.exists(dir_):
+            os.mkdir(dir_)
 
-        path = os.path.join(dir, name)
+        path = os.path.join(dir_, name)
         self.df.to_csv(path, index=False)
 
     @staticmethod

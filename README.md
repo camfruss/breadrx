@@ -3,19 +3,22 @@
 The proof is in the crumb? 
 
 #### TODO
-- [ ] Create labeled dataset of images
-  - [ ] Download all images (work on imgur downloads)
-  - [ ] organize the data into 2 folders: images + metadata using narrative select
-  - [ ] Connect to OpenAI API to determine whether over or under proofed
+- [ ] Create labeled dataset of images # finish by Monday
+  - [ ] refactor image parsing code
+  - [ ] Connect to OpenAI API to determine whether over or under proofed + strength
   - [ ] Upload to HuggingFace
-- [ ] Develop CNN architecture & train on Google colab Pro with CUDA. Just try smaller dataset first with PyTorch
+
+- [ ] Develop CNN architecture & train on Google colab Pro with CUDA. Just try smaller dataset first with PyTorch + MLFlow
+
 - [ ] Add bias-variance tradeoff to determine whether more data would improve accuracy
 - [ ] Evaluate model & create image heatmap to understand how model looks at image
-- [ ] Fine-tune an existing model and compare accuracy
-- [ ] Keep GitHub repository updated
+
 - [ ] Build a simple website where user can upload image of their bread for the classifier
 - [ ] Deploy model using Onnx Runtime 
 - [ ] Host website on DigitalOcean
+- [ ] Clean up GitHub repo
+  - [ ] make from_scratch/data csv body comments proper json format then adjust openai_labels to match this change
+
 
 ## Overview
 
@@ -33,7 +36,7 @@ The [script provided](https://github.com/Watchful1/PushshiftDumps/blob/master/sc
 above instructions was used to remove comments that made no mention of proofing. For images contained in a gallery, only the
 first image was ingested into the dataset for simplicity's sake. All non-crumb pictures were removed manually using 
 [Narrative Select](https://narrative.so/select). Of the 12,558 posts that mentioned proofing, 10,027 contained a non-deleted
-image, and XXXX contained a usable crumb image. 
+image, and 3,802 contained a usable crumb image. 
 
 There are torrents available with more up-to-date posts, so more images could be collected in the future, but pursing 
 alternative sources would likely yield better results. 
