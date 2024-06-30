@@ -1,13 +1,15 @@
+from alive_progress import alive_bar
 from dotenv import load_dotenv
 import json
+import numpy as np
 from openai import OpenAI
 import os
 import pandas as pd
 import tiktoken
+from time import sleep
 
-
-df = pd.read_csv("./subreddits/from_scratch.csv")
-post_ids = set([f.split(".")[0] for f in os.listdir("./final")])
+df = pd.read_csv("./from_scratch.csv")
+post_ids = set([f.split(".")[0] for f in os.listdir("./images")])
 df = df[df["post_id"].isin(post_ids)]
 
 # Create labels
@@ -19,17 +21,17 @@ client = OpenAI(
 system_prompt = \
     """ You are looking at comments of posts from people asking about their bread. You will be provided the title of 
     each post and comments from other users as a json object in the following format:
-    
+
     {
         title: string, // title of the post
         comments: string[]  // array, where each element is a separate comment from a user
     } 
-     
+
     I want you to determine whether the person's bread is under-proofed, over-proofed, perfectly proofed, or if the
     comments are inconclusive. For each of these 4 categories, I want you to determine the probability it fits into
     each of the 4 categories. For example, if the comments are clear the bread is over-proofed, the "over-proofed" field
     should have a value close to 1. Use 2 significant digits. The json format of your response should be as follows:
-    
+
     {
         over: float
         under: float
@@ -78,15 +80,36 @@ def get_label(description):
 
 
 def main():
-    for idx, row in df[:1].iterrows():
-        print(row)
-        data = {"title": row["title"], "comments": row["body"]}
-        # result = get_label(json.dumps(data))
-        # response = json.loads(result)
-        # print(type(response), response)
-        {
-            ""
-        }
+    columns = ["image", "upvotes", "under_proof", "over_proof", "perfect_proof", "unsure_proof"]
+    df_out = pd.DataFrame(columns=columns)
+
+    with alive_bar(len(df)) as bar:
+        for idx, row in df.iterrows():
+            data = {"title": row["title"], "comments": row["body"]}
+            result = get_label(json.dumps(data))
+            response = json.loads(result)
+
+            df_out = df_out._append({
+                "image": f"row['post_id'].jpg",
+                "upvotes": row["upvotes"],
+                "under_proof": response.get("under"),
+                "over_proof": response.get("over"),
+                "perfect_proof": response.get("perfect"),
+                "unsure_proof": response.get("inconclusive")
+            }, ignore_index=True)
+            bar();
+            sleep(0.50)
+
+    # create splits
+    train, validate, test = np.split(
+        df_out.sample(frac=1, random_state=42),
+        [
+            int(0.80 * len(df_out)),
+            int(0.90 * len(df_out))
+        ]
+    )
+
+    df_out.to_csv("./metadata.csv", index=False)
 
 
 if __name__ == "__main__":
