@@ -91,8 +91,9 @@ class TorrentParser:
         """ Constructs Dataframe object consisting of all submissions and comments. """
         subreddits = set()
         for file in os.listdir(self.path):
-            subreddit = re.search(r"([A-Za-z]+)(?=_)", file).group(0)
-            subreddits.add(subreddit)
+            subreddit = re.search(r"([A-Za-z]+)(?=_(comments|submissions))", file)
+            if subreddit:
+                subreddits.add(subreddit.group(0))
 
         for k in subreddits:
             self.dfs[k] = Subreddit(self.path, k)

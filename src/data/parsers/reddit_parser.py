@@ -1,5 +1,7 @@
-from helper_functions import filter_links
-from image_parser import ImageParser
+import pandas as pd
+
+from .helper_functions import filter_links
+from .image_parser import ImageParser
 
 from bs4 import BeautifulSoup
 from collections import defaultdict
@@ -9,7 +11,7 @@ import urllib.request
 
 class RedditParser(ImageParser):
 
-    def __init__(self, df, *, filepath: str, path: str):
+    def __init__(self, df: pd.DataFrame = None, *, filepath: str = None, path: str):
         """
         - df: dataframe containing only Reddit image links
         """
@@ -17,13 +19,6 @@ class RedditParser(ImageParser):
 
         patterns = ["i.redd.it", "reddit.com"]
         self.df = filter_links(self.df, patterns)
-
-        opener = urllib.request.build_opener()
-        opener.addheaders = [
-            ("user-agent", "curl/8.8.1"),
-            ("accept", "*/*")
-        ]
-        urllib.request.install_opener(opener)
 
     def _parse_row(self, link):
         if "i.redd.it" in link and link.endswith(".jpg"):

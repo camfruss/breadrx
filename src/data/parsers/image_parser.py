@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from dotenv import find_dotenv, load_dotenv
 import os
 import pandas as pd
+from time import sleep
+import urllib.error
 import urllib.request
-
 
 class ImageParser(ABC):
 
@@ -13,6 +15,16 @@ class ImageParser(ABC):
         - filepath: if no df is provided -> path to csv file containing image links
         - path: directory to save images
         """
+        env_file = find_dotenv(".env")
+        load_dotenv(env_file)
+
+        opener = urllib.request.build_opener()
+        opener.addheaders = [
+            ("user-agent", "curl/8.8.1"),
+            ("accept", "*/*")
+        ]
+        urllib.request.install_opener(opener)
+
         if df is None:
             self.df = pd.read_csv(filepath)
         else:
@@ -22,22 +34,25 @@ class ImageParser(ABC):
         self.endpoints = defaultdict(str)
 
         self.path = path
-        if not os.path.exists(path):
-            os.mkdir(path)
+        os.makedirs(path, exist_ok=True)
 
     @abstractmethod
     def _parse_row(self, link):
         pass
 
-    def parse(self):
+    def parse(self, limit: int = None):
         """ Returns dict of id:endpoint key value pairs """
-        for _, row in self.df.iterrows():
+        for _, row in self.df[:limit].iterrows():
             endpoint = self._parse_row(row["image_link"])
             post_id = row["post_id"]
             if endpoint:
                 self.endpoints[post_id] = endpoint
 
-    def download(self):
+    def download(self, politeness: int = 1):
         for post_id, endpoint in self.endpoints.items():
             filepath = os.path.join(self.path, f"{post_id}.jpg")
-            urllib.request.urlretrieve(endpoint, filepath)
+            try:
+                urllib.request.urlretrieve(endpoint, filepath)
+            except Exception as e:
+                print(f"Exception encountered: {e}\nendpoint: {endpoint}\nfilepath: {filepath}")
+            sleep(politeness)
