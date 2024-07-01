@@ -1,56 +1,37 @@
-from helper_functions import png_to_jpg
+from helper_functions import filter_links
+from image_parser import ImageParser
 
-import logging
-from dotenv import load_dotenv
-import mimetypes
-import os
-import re
-import requests
+from bs4 import BeautifulSoup
+from collections import defaultdict
 import urllib.error
 import urllib.request
 
-from bs4 import BeautifulSoup
 
-def configure():
-    load_dotenv()
-    opener = urllib.request.build_opener()
-    opener.addheaders = [
-        ("user-agent", "curl/8.8.1"),
-        ("accept", "*/*")
-    ]
-    urllib.request.install_opener(opener)
-    logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
+class RedditParser(ImageParser):
 
-class RedditParser:
-
-    def __init__(self, df, fin, fout):
+    def __init__(self, df, *, filepath: str, path: str):
         """
-
-        Parameters
-        ----------
-        - df: dataframe consisting of exclusively reddit image links
-        - path: the folder where all images are downloaded
-            - e.g.: /home/data/images
+        - df: dataframe containing only Reddit image links
         """
-        self.df = df
-        self.fin = fin
+        super().__init__(df=df, filepath=filepath, path=path)
 
-    def parse(self):
-        """
+        patterns = ["i.redd.it", "reddit.com"]
+        self.df = filter_links(self.df, patterns)
 
+        opener = urllib.request.build_opener()
+        opener.addheaders = [
+            ("user-agent", "curl/8.8.1"),
+            ("accept", "*/*")
+        ]
+        urllib.request.install_opener(opener)
 
-        """
-        urls = None  # TODO
+    def _parse_row(self, link):
+        if "i.redd.it" in link and link.endswith(".jpg"):
+            return link
 
-        for url in urls:
-            filename = None  # TODO
-
-            image_endpoint = None
-            if "i.redd.it" in url:  #
-                image_endpoint = url
-
-            if "gallery" in url:
-                response = urllib.request.urlopen(url)
+        try:
+            if "gallery" in link:
+                response = urllib.request.urlopen(link)
                 html = response.read()
                 soup = BeautifulSoup(html, "html.parser")
                 im_sources = [
@@ -58,18 +39,7 @@ class RedditParser:
                     for im in soup.find_all("img")
                     if ".jpg" in im.get("src", "")
                 ]
-                if not im_sources:
-                    logging.debug("No image sources")
-                    return
-                image_endpoint = im_sources[0]
-
-            if image_endpoint is None:
-                logging.debug("Endpoint None")
-                return
-
-            path = f"{self.fout}/{filename}.{url.split('.')[-1]}"
-            urllib.request.urlretrieve(image_endpoint, path)
-            if not path.endswith(".jpg"):
-                png_to_jpg(path)
-
-
+                return im_sources[0]
+        except Exception:
+            pass
+        return None

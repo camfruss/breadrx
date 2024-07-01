@@ -1,28 +1,19 @@
-import logging
+from helper_functions import filter_links
+from image_parser import ImageParser
+
 import mimetypes
 import os
 import re
 import requests
-import urllib.error
-import urllib.request
-
-from helper_functions import png_to_jpg
 
 
-class ImgurParser:
+class ImgurParser(ImageParser):
 
-    def __init__(self, df, fin, fout):
-        self.df = df
-        self.fin = fin
-        self.fout = fout
+    def __init__(self, df, *, filepath: str, path: str):
+        super().__init__(df=df, filepath=filepath, path=path)
 
-        opener = urllib.request.build_opener()
-        opener.addheaders = [
-            ("user-agent", "curl/8.8.1"),
-            ("accept", "*/*"),
-            ("Authorization", f"Client-ID {os.getenv('IMGUR_CLIENT_ID')}")
-        ]
-        urllib.request.install_opener(opener)
+        patterns = ["imgur"]
+        self.df = filter_links(self.df, patterns)
 
         self.headers = {
             "user-agent": "curl/8.8.0",
@@ -32,20 +23,14 @@ class ImgurParser:
 
     @staticmethod
     def _get_image_id(response):
-        """
-
-        :param response:
-        :return:
-        """
+        """ Given an IMGUR API response, finds the first image_id """
         if response.status_code != 200:
-            logging.debug(f"Request failed with status code {response.status_code}")
             return None
 
         try:
             data = response.json()
             api_response = data.get("data", None)
-
-            if not api_response:  # api_response is None
+            if api_response is None:
                 return
 
             if type(api_response) is list:
@@ -54,26 +39,13 @@ class ImgurParser:
             else:
                 ext = mimetypes.guess_extension(api_response["type"])
                 return api_response["link"], ext
-        except TypeError:
-            logging.debug("")
-        except ValueError:
-            logging.debug("Response content is not valid JSON")
-        except KeyError:
-            logging.debug("No image content")
-        except Exception as e:
-            logging.debug(f"Unknown error, {e.__cause__}")
+        except Exception:
+            pass
 
-        return None
+    def _parse_row(self, link):
 
-    def parse_imgur(self, url, filename):
-        """
-
-        :param url:
-        :param filename:
-        :return:
-        """
         pattern = r"\/([^/\.]+)(?=[/\.]|$)"  # identifies the image_hash in an imgur link
-        match = re.findall(pattern, url)[-1]
+        match = re.findall(pattern, link)[-1]
         if match is None:
             return
 
@@ -84,21 +56,12 @@ class ImgurParser:
         }
 
         try:
-            if ("/a/" in url) or ("gallery" in url):
+            if ("/a/" in link) or ("gallery" in link):
                 response = requests.get(API_ENDPOINTS["album"], headers=self.headers)
             else:
                 response = requests.get(API_ENDPOINTS["image"], headers=self.headers)
-        except urllib.error.HTTPError:
-            logging.debug("urllib.error.HTTPerror imgur ")
-            return
-
-        try:
             endpoint, ext = self._get_image_id(response)
         except Exception as e:
-            logging.debug("get_image_id error")
             return
 
-        path = f"{filename}{ext}"
-        urllib.request.urlretrieve(endpoint, path)
-        if not ext.endswith(".jpg"):
-            png_to_jpg(path)
+        return endpoint, ext

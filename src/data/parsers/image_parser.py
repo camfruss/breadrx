@@ -1,16 +1,11 @@
-from imgur_parser import ImgurParser
-from reddit_parser import RedditParser
-
+from abc import ABC, abstractmethod
+from collections import defaultdict
 import os
 import pandas as pd
+import urllib.request
 
-class ImageParser:
 
-    # name: (pattern, class)
-    parsers = {
-        "reddit": (["i.redd.it", "reddit.com"], RedditParser),
-        "imgur": (["imgur"], ImgurParser)
-    }
+class ImageParser(ABC):
 
     def __init__(self, *, df: pd.DataFrame, filepath: str, path: str):
         """
@@ -22,13 +17,27 @@ class ImageParser:
             self.df = pd.read_csv(filepath)
         else:
             self.df = df
+        self.df = self.df.filter(["post_id", "image_link"])  # drop unnecessary columns
+
+        self.endpoints = defaultdict(str)
 
         self.path = path
         if not os.path.exists(path):
             os.mkdir(path)
 
-    def download_images(self):
-        """ Downloads images from the link provided in {image_link} using the parser specified in {source_map} """
-        for k, (v, cls) in ImageParser.parsers.items():
-            df = self.df[self.df["image_link"].str.contians("|".join(v))]
-            cls(df, self.path).parse()
+    @abstractmethod
+    def _parse_row(self, link):
+        pass
+
+    def parse(self):
+        """ Returns dict of id:endpoint key value pairs """
+        for _, row in self.df.iterrows():
+            endpoint = self._parse_row(row["image_link"])
+            post_id = row["post_id"]
+            if endpoint:
+                self.endpoints[post_id] = endpoint
+
+    def download(self):
+        for post_id, endpoint in self.endpoints.items():
+            filepath = os.path.join(self.path, f"{post_id}.jpg")
+            urllib.request.urlretrieve(endpoint, filepath)

@@ -1,10 +1,16 @@
 import os
-
 from PIL import Image, UnidentifiedImageError
+import urllib.request
+
+
+def filter_links(df, patterns):
+    query_pattern = "|".join(patterns)
+    df = df[df["image_link"].str.contians(query_pattern)]
+    return df
+
+
 def png_to_jpg(path):
-    """
-    Converts a jpg file to a png file located at {filename}
-    """
+    """ Converts a jpg file to a png file located at {filename} """
     try:
         im = Image.open(path)
         rgb_im = im.convert("RGB")
@@ -12,14 +18,16 @@ def png_to_jpg(path):
             jpg_filename = path.replace(".png", ".jpg")
             rgb_im.save(jpg_filename)
             os.remove(path)
-    except UnidentifiedImageError as uie:
+    except UnidentifiedImageError:
         pass
 
 
-def resize(im: Image, dim: int = 512) -> None:
+def resize(filepath, im: Image, dim: int = 512) -> None:
     """
+    - filepath: location to save the image
     - im: image to resize
     - dim: desired image output dimension
+        - all images are cropped to a square
     """
     try:
         w, h = im.size
@@ -32,6 +40,6 @@ def resize(im: Image, dim: int = 512) -> None:
         im_ = im.crop(box).resize((dim, dim), Image.Resampling.LANCZOS)
 
         # create new file path
-        im_.save(f"{self.fout}/{filename}")
+        im_.save(filepath)
     except UnidentifiedImageError:
         pass

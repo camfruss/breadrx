@@ -109,6 +109,8 @@ def main():
         ]
     )
 
+    # todo: fix path to include train/validate/test
+
     df_out.to_csv("./metadata.csv", index=False)
 
 
