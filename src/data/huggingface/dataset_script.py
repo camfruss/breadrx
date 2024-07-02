@@ -89,11 +89,8 @@ class BreadProofingDataset(datasets.GeneratorBasedBuilder):
                     "path": path,
                     "bytes": image.read(),
                 },
-                # "post_id":
-                # "date": ,
+                # "image":
                 # "upvotes": ,
-                # "post_link": ,
-                # "image_link": ,
                 # "over_proof": ,
                 # "under_proof": ,
                 # "perfect_proof": ,
