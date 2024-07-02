@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "breadrx"
+version = "0.1.0"
+description = ""
+authors = ["Cameron Russell <camfruss@gmail.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^2.0.0"
+pandas = "^2.2.2"
+alive-progress = "^3.1.5"
+tiktoken = "^0.7.0"
+openai = "^1.35.7"
+pillow = "^10.4.0"
+regex = "^2024.5.15"
+beautifulsoup4 = "^4.12.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

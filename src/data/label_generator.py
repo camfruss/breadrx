@@ -1,3 +1,5 @@
+import shutil
+
 from alive_progress import alive_bar
 from dotenv import load_dotenv
 import json
@@ -8,11 +10,14 @@ import pandas as pd
 import tiktoken
 from time import sleep
 
-df = pd.read_csv("./from_scratch.csv")
-post_ids = set([f.split(".")[0] for f in os.listdir("./images")])
+# Filter rows with valid image in dataset
+hf_path = "./huggingface"
+images_path = os.path.join(hf_path, "images")
+
+df = pd.read_csv("./raw/uncompressed/torrent_out.csv")
+post_ids = set([f.split(".")[0] for f in os.listdir(images_path)])
 df = df[df["post_id"].isin(post_ids)]
 
-# Create labels
 load_dotenv()
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
@@ -41,7 +46,8 @@ system_prompt = \
     """
 
 
-def calculate_cost():  # Calculates estimated cost of generating all labels
+def calculate_cost():
+    """ Calculates estimated cost of generating all labels """
     API_COSTS = {
         "gpt-4o": 5.00,
         "gpt-3.5-turbo": 0.50
@@ -79,6 +85,15 @@ def get_label(description):
     return completion.choices[0].message.content
 
 
+def move_images(split_df, split_name):
+    path = os.path.join(hf_path, split_name)
+    os.makedirs(path, exist_ok=True)
+    for _, row in split_df.iterrows():
+        src = os.path.join(images_path, row["image"])
+        dst = os.path.join(path, row["image"])
+        shutil.copy(src, dst)
+
+
 def main():
     columns = ["image", "upvotes", "under_proof", "over_proof", "perfect_proof", "unsure_proof"]
     df_out = pd.DataFrame(columns=columns)
@@ -89,15 +104,16 @@ def main():
             result = get_label(json.dumps(data))
             response = json.loads(result)
 
-            df_out = df_out._append({
-                "image": f"row['post_id'].jpg",
-                "upvotes": row["upvotes"],
-                "under_proof": response.get("under"),
-                "over_proof": response.get("over"),
-                "perfect_proof": response.get("perfect"),
-                "unsure_proof": response.get("inconclusive")
-            }, ignore_index=True)
-            bar();
+            if response.get("under") is not None:
+                df_out = df_out._append({
+                    "image": f"{row['post_id']}.jpg",
+                    "upvotes": row["upvotes"],
+                    "under_proof": response.get("under"),
+                    "over_proof": response.get("over"),
+                    "perfect_proof": response.get("perfect"),
+                    "unsure_proof": response.get("inconclusive")
+                }, ignore_index=True)
+            bar()
             sleep(0.50)
 
     # create splits
@@ -109,9 +125,15 @@ def main():
         ]
     )
 
-    # todo: fix path to include train/validate/test
+    df_out.loc[train.index, "image"] = "train/" + train["image"]
+    df_out.loc[validate.index, "image"] = "validate/" + validate["image"]
+    df_out.loc[test.index, "image"] = "test/" + test["image"]
 
-    df_out.to_csv("./metadata.csv", index=False)
+    move_images(train, "train")
+    move_images(validate, "validate")
+    move_images(test, "test")
+
+    df_out.to_csv("./huggingface/metadata.csv", index=False)
 
 
 if __name__ == "__main__":

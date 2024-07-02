@@ -4,7 +4,6 @@ from .helper_functions import filter_links
 from .image_parser import ImageParser
 
 from bs4 import BeautifulSoup
-from collections import defaultdict
 import urllib.error
 import urllib.request
 

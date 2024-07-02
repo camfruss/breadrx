@@ -7,6 +7,8 @@
 # Data files
 **/*.zst
 **/*.csv
+**/*.tar
+**/*.gz
 
 # Log files
 **/*.log
