@@ -11,16 +11,9 @@ a loaf of bread is over, under, or well-proofed.
 
 ### Usage
 
-- pip install -e .
-
-Installing dependencies:
-```
-$ poetry build 
-$ poetry install
-```
-
 Available as a CLI:
 ```
+$ poetry install
 $ breadrx -f bread.jpg
 > over-proofed with probability 0.742
 > inference time: 3.22 seconds
