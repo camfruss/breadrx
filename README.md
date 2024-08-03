@@ -1,53 +1,73 @@
 # BreadRx
 
-https://mlflow.org/docs/latest/python_api/mlflow.pytorch.html
+The proof is in the crumb?
 
-The proof is in the crumb? 
+### Overview
 
-#### TODO
-
-- [] need to update file_name in dataset to match train/test/validate split
-  - [ ] Upload to HuggingFace
-
-- [ ] Develop CNN architecture & train on Google colab Pro with CUDA. Just try smaller dataset first with PyTorch + MLFlow
-
-- [ ] Add bias-variance tradeoff to determine whether more data would improve accuracy
-- [ ] Evaluate model & create image heatmap to understand how model looks at image
-
-- [ ] Build a simple website where user can upload image of their bread for the classifier
-- [ ] Deploy model using Onnx Runtime 
-- [ ] Host website on DigitalOcean
-- [ ] Clean up GitHub repo
-  - [ ] make from_scratch/data csv body comments proper json format then adjust openai_labels to match this change
-
-- [ ] Add support for non-jpg images
-
-## Overview
-
-Building off Justin Kolpak's model Databricks 
+Building off Justin Kolpak's model detailed in his Medium article, BreadRx 
+attempts to build a more robust dataset to improve the accuracy of predicting whether
+a loaf of bread is over, under, or well-proofed. 
 
 
-## CNN Model
+### Usage
 
-### Architecture
-PyTorch
+- pip install -e .
 
+Installing dependencies:
+```
+$ 
+```
+
+Available as a CLI:
+```
+$ breadrx -f bread.jpg
+> over-proofed with probability 0.74
+> inference time: 3.22 sec. 
+```
+
+### Data
+
+A full overview of the dataset used in training can be found on [Huggingface](https://huggingface.co/datasets/camfruss/bread_proofing). 
+
+In short, 2,880 images were collected from the subreddits r/Sourdough and r/Breadit and classified as
+over, under, or well-proofed using OpenAI's API. 
 
 ### Training
 
-Colab Pro + CUDA
+#### Convolutional Neural Network
 
-### Evaluation
+The CNN model architecture is based off of AlexNet: 
 
-#### Accuracy
-#### Bias-Variance Trade-Off
-#### CNN Analysis
+<p align="center">
+ <img width="80%" src="./src/ml/architecture.png">
+</p>
+
+### Analysis
+
+A class activation map was generated based on the last fully connected layer. 
+While the most influential pixels generally coincide with the loaf, it appears the background
+is creating a fair amount of noise in the model. This is one possible explanation for the current
+subpar performance of the model. We suggest a possible remedy for this in Future Improvements. 
+
+<p align="center">
+ <img width="80%" src="./src/ml/cam.png">
+</p>
 
 
-## Fine-tuned
+### Further Questions
 
-
-## Further Questions
-1. Other data sources?  
+1. Other data sources? 
 2. Adversarial Data Augmentation?
+3. Expanding criteria for acceptable Reddit posts?
 
+
+### Future Improvements
+
+- [ ] Modularize `dim`, `is_grayscale`
+- [ ] Calculate bias-variance tradeoff to determine whether more data would improve accuracy
+- [ ] Use connected components to isolate crumb image from background to reduce noise
+- [ ] Reduce over-fitting
+- [ ] Add MLFlow experiment tracking
+- [ ] Compare results with a fine-tuned LLM (either using torchtune or OpenAI API)
+- [ ] Add website
+- [ ] Experiment with different loss functions and optimizers

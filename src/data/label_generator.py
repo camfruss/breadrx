@@ -23,6 +23,8 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
+GPT_MODEL = "gpt-4o-mini"
+
 system_prompt = \
     """ You are looking at comments of posts from people asking about their bread. You will be provided the title of 
     each post and comments from other users as a json object in the following format:
@@ -32,27 +34,24 @@ system_prompt = \
         comments: string[]  // array, where each element is a separate comment from a user
     } 
 
-    I want you to determine whether the person's bread is under-proofed, over-proofed, perfectly proofed, or if the
-    comments are inconclusive. For each of these 4 categories, I want you to determine the probability it fits into
-    each of the 4 categories. For example, if the comments are clear the bread is over-proofed, the "over-proofed" field
-    should have a value close to 1. Use 2 significant digits. The json format of your response should be as follows:
+    I want you to determine whether the person's bread is under-proofed, over-proofed, perfectly proofed, or if there
+    is not enough information in the comments to decide. For example, if the comments are clear the bread is 
+    over-proofed, the results field should be "over-proofed." The json format of your response should be as follows:
 
     {
-        over: float
-        under: float
-        perfect: float
-        inconclusive: float
+        result: string
     } 
     """
 
 
-def calculate_cost():
+def calculate_cost(model=GPT_MODEL):
     """ Calculates estimated cost of generating all labels """
     API_COSTS = {
         "gpt-4o": 5.00,
+        "gpt-4o-mini": 0.150,
         "gpt-3.5-turbo": 0.50
     }
-    enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    enc = tiktoken.encoding_for_model(model)
     token_count = 0
     for _, row in df.iterrows():
         text = row["title"] + row["body"]
@@ -66,7 +65,7 @@ def calculate_cost():
 
 def get_label(description):
     completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=GPT_MODEL,
         temperature=0,
         response_format={
             "type": "json_object"
@@ -86,16 +85,16 @@ def get_label(description):
 
 
 def move_images(split_df, split_name):
-    path = os.path.join(hf_path, split_name)
-    os.makedirs(path, exist_ok=True)
+    new_path = os.path.join(hf_path, split_name)
+    os.makedirs(new_path, exist_ok=True)
     for _, row in split_df.iterrows():
-        src = os.path.join(images_path, row["image"])
-        dst = os.path.join(path, row["image"])
+        src = os.path.join(images_path, row["file_name"])
+        dst = os.path.join(new_path, row['file_name'])
         shutil.copy(src, dst)
 
 
 def main():
-    columns = ["image", "upvotes", "under_proof", "over_proof", "perfect_proof", "unsure_proof"]
+    columns = ["file_name", "label"]
     df_out = pd.DataFrame(columns=columns)
 
     with alive_bar(len(df)) as bar:
@@ -104,35 +103,37 @@ def main():
             result = get_label(json.dumps(data))
             response = json.loads(result)
 
-            if response.get("under") is not None:
+            if (label := response.get("result")) is not None and "proof" in label:
                 df_out = df_out._append({
-                    "image": f"{row['post_id']}.jpg",
-                    "upvotes": row["upvotes"],
-                    "under_proof": response.get("under"),
-                    "over_proof": response.get("over"),
-                    "perfect_proof": response.get("perfect"),
-                    "unsure_proof": response.get("inconclusive")
+                    "file_name": f"{row['post_id']}.jpg",
+                    "label": label
                 }, ignore_index=True)
             bar()
             sleep(0.50)
 
     # create splits
-    train, validate, test = np.split(
-        df_out.sample(frac=1, random_state=42),
-        [
-            int(0.80 * len(df_out)),
-            int(0.90 * len(df_out))
-        ]
-    )
+    lower, upper = int(0.80 * len(df_out)), int(0.90 * len(df_out))
+    train = df_out.iloc[:lower, :]
+    validate = df_out.iloc[lower:upper, :]
+    test = df_out.iloc[upper:, :]
 
-    df_out.loc[train.index, "image"] = "train/" + train["image"]
-    df_out.loc[validate.index, "image"] = "validate/" + validate["image"]
-    df_out.loc[test.index, "image"] = "test/" + test["image"]
-
+    # reorganize file paths
     move_images(train, "train")
     move_images(validate, "validate")
     move_images(test, "test")
 
+    # update image names with file paths
+    df_out.loc[train.index, "file_name"] = "train/" + train["file_name"]
+    df_out.loc[validate.index, "file_name"] = "validate/" + validate["file_name"]
+    df_out.loc[test.index, "file_name"] = "test/" + test["file_name"]
+
+    # vectorize
+    label_map = {
+        "under-proofed": 0,
+        "over-proofed": 1,
+        "perfectly proofed": 2
+    }
+    df_out["label"] = df_out["label"].map(label_map)
     df_out.to_csv("./huggingface/metadata.csv", index=False)
 
 

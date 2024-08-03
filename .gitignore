@@ -1,5 +1,7 @@
 .idea
 **/__pycache__/
+/venv/
+/src/ml/cfar10/
 
 # Secrets
 /.env
