@@ -15,14 +15,15 @@ a loaf of bread is over, under, or well-proofed.
 
 Installing dependencies:
 ```
-$ 
+$ poetry build 
+$ poetry install
 ```
 
 Available as a CLI:
 ```
 $ breadrx -f bread.jpg
-> over-proofed with probability 0.74
-> inference time: 3.22 sec. 
+> over-proofed with probability 0.742
+> inference time: 3.22 seconds
 ```
 
 ### Data
@@ -39,7 +40,7 @@ over, under, or well-proofed using OpenAI's API.
 The CNN model architecture is based off of AlexNet: 
 
 <p align="center">
- <img width="80%" src="./src/ml/architecture.png">
+ <img width="80%" src="src/ml/architecture.png">
 </p>
 
 ### Class Activation
@@ -50,7 +51,7 @@ is creating a fair amount of noise in the model. This is one possible explanatio
 subpar performance of the model. We suggest a possible remedy for this in Future Improvements. 
 
 <p align="center">
- <img width="80%" src="./src/ml/cam.png">
+ <img width="80%" src="src/ml/cam.png">
 </p>
 
 

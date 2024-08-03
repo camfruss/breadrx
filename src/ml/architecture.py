@@ -56,6 +56,7 @@ class ConvolutionalNN(nn.Module):
             nn.BatchNorm1d(fc_features // 16),
 
             nn.Linear(in_features=fc_features // 16, out_features=3),
+            nn.Softmax()
         )
         self._initialize_weights()
 
@@ -155,13 +156,17 @@ class ImageDataset(torch.utils.data.Dataset):
         """
         :param tail: list of additional transforms to add
         """
+        return ImageDataset.s_get_transforms(self.dim, self.is_grayscale, tail=tail)
+
+    @staticmethod
+    def s_get_transforms(dim, is_grayscale=False, tail=None):
         transforms = [
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
-            v2.Resize((self.dim, self.dim))
+            v2.Resize((dim, dim))
         ]
 
-        if self.is_grayscale:
+        if is_grayscale:
             transforms.append(v2.Grayscale())
         if tail is not None:
             transforms.append(tail)
