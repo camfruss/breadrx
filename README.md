@@ -42,7 +42,7 @@ The CNN model architecture is based off of AlexNet:
  <img width="80%" src="./src/ml/architecture.png">
 </p>
 
-### Analysis
+### Class Activation
 
 A class activation map was generated based on the last fully connected layer. 
 While the most influential pixels generally coincide with the loaf, it appears the background
